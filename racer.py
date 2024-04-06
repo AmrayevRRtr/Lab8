@@ -54,7 +54,7 @@ pygame.time.set_timer(SPAWN_ENEMY, 5000)  # Spawn enemy event every 5 seconds
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        image = pygame.image.load("Player.png")
+        image = pygame.image.load("Playerr.png")
         self.image = scale_image(image, 1/10)
         self.rect = self.image.get_rect()
         self.rect.center = (160, SCREEN_HEIGHT//2)
@@ -76,7 +76,7 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        image = pygame.image.load("Enemy.png")
+        image = pygame.image.load("Enemyy.png")
         self.image = scale_image(image, 1/10)
         self.rect = self.image.get_rect()
         self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
