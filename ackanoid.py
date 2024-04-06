@@ -11,6 +11,7 @@ speed_increase_rate = 0.00001
 screen = pygame.display.set_mode((W, H), pygame.RESIZABLE)
 bg = (0, 0, 0)
 
+white = (255, 255, 255)
 #paddle
 paddleW = 300
 paddleH = 25
@@ -36,6 +37,7 @@ game_score_rect.center = (210, 20)
 
 #Catching sound
 collision_sound = pygame.mixer.Sound('catch.mp3')
+unbreakable_sound = pygame.mixer.Sound('unbreak.mp3')
 
 def detect_collision(dx, dy, ball, rect):
     if dx > 0:
@@ -62,6 +64,9 @@ block_list = [pygame.Rect(10 + 120 * i, 50 + 70 * j,
 color_list = [(random.randrange(0, 255), 
     random.randrange(0, 255),  random.randrange(0, 255))
               for i in range(10) for j in range(4)] 
+unbreakable_list = [pygame.Rect(10 + 250 * i, 350 + 30*j,
+         100, 50) for i in range(5) for j in range (1)]
+unbreakable_color = [(255, 255, 255) for i in range(5) for j in range(1)]
 # print(block_list)
 #Game over Screen
 losefont = pygame.font.SysFont('comicsansms', 40)
@@ -86,10 +91,13 @@ while True:
     
 
     
-    [pygame.draw.rect(screen, color_list[color], block)
-     for color, block in enumerate (block_list)] #drawing blocks
+    [pygame.draw.rect(screen, color_list[color], block) 
+     for color, block in enumerate(block_list)]
+    [pygame.draw.rect(screen, pygame.Color(255, 255, 255), unbreakable)
+     for color, unbreakable in enumerate (unbreakable_list)]
     pygame.draw.rect(screen, pygame.Color(255, 255, 255), paddle)
     pygame.draw.circle(screen, pygame.Color(255, 0, 0), ball.center, ballRadius)
+     
 
     # Increase the speed of a ball with time
     ball_accel = speed_increase_rate*FPS
@@ -112,6 +120,7 @@ while True:
 
     #Collision blocks
     hitIndex = ball.collidelist(block_list)
+    hit_unbreakable = ball.collidelist(unbreakable_list)
 
     if ball.bottom > H:
         screen.fill((0, 0, 0))
@@ -129,11 +138,9 @@ while True:
         paddle.right += paddleSpeed
         paddlepos1 += paddleSpeed
 
-
+    # collosion with bricks and removing bricks
     if hitIndex != -1:
-
-            print(hitIndex)
-                
+            print(hitIndex)   
             hitRect = block_list.pop(hitIndex)
             hitColor = color_list.pop(hitIndex)
             dx, dy = detect_collision(dx, dy, ball, hitRect)
@@ -142,6 +149,13 @@ while True:
             # Shrink the paddle when ball hit a brick
             paddleW -= 5
             paddle = pygame.Rect(paddlepos1, paddlepos2, paddleW, paddleH)
+
+    # collision with unbreakable bricks
+    if hit_unbreakable != -1:
+        hit_rect = unbreakable_list[hit_unbreakable]
+        dx, dy = detect_collision(dx, dy, ball, hit_rect)
+        unbreakable_sound.play()
+
         
     #Game score
     game_score_text = game_score_fonts.render(f'Your game score is: {game_score}', True, (255, 255, 255))
