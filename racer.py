@@ -6,17 +6,26 @@ import time
 
 pygame.init()
 
+def scale_image(img, factor):
+    size = round(img.get_width() * factor), (img.get_height() * factor)
+    return pygame.transform.scale(img, size)
+# Load background image
+BACKGROUND = pygame.image.load("AnimatedRoad.jpg")
+
 # Screen dimensions
-SCREEN_WIDTH = 400
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = BACKGROUND.get_width()
+SCREEN_HEIGHT = BACKGROUND.get_height()
 
 FPS = 60
 FramePerSec = pygame.time.Clock()
+
+score = 0
 
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+
 
 # Setting up Fonts
 font = pygame.font.SysFont("Verdana", 60)
@@ -31,13 +40,13 @@ pygame.mixer.music.load('country.mp3')
 pygame.mixer.music.play(-1)  # Play music on loop
 
 # Create a white screen
-DISPLAYSURF = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+DISPLAYSURF = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT//1.5))
 DISPLAYSURF.fill(WHITE)
 pygame.display.set_caption("Game")
 
 # User-defined events
 INC_SPEED = pygame.USEREVENT + 1
-SPAWN_ENEMY = pygame.USEREVENT + 2
+SPAWN_ENEMY = pygame.USEREVENT
 pygame.time.set_timer(INC_SPEED, 2000)  # Increase speed event by time
 pygame.time.set_timer(SPAWN_ENEMY, 5000)  # Spawn enemy event every 5 seconds
 
@@ -45,15 +54,16 @@ pygame.time.set_timer(SPAWN_ENEMY, 5000)  # Spawn enemy event every 5 seconds
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.image.load("Player.png")
+        image = pygame.image.load("Player.png")
+        self.image = scale_image(image, 1/10)
         self.rect = self.image.get_rect()
-        self.rect.center = (160, 520)
+        self.rect.center = (160, SCREEN_HEIGHT//2)
 
     def move(self):
         pressed_keys = pygame.key.get_pressed()
         if pressed_keys[pygame.K_UP] and self.rect.top > 0:
             self.rect.move_ip(0, -5)
-        if pressed_keys[pygame.K_DOWN] and self.rect.bottom < SCREEN_HEIGHT:
+        if pressed_keys[pygame.K_DOWN] and self.rect.bottom < SCREEN_HEIGHT//1.5:
             self.rect.move_ip(0, 5)
         if self.rect.left > 0:
             if pressed_keys[pygame.K_LEFT]:
@@ -66,32 +76,71 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.image.load("Enemy.png")
+        image = pygame.image.load("Enemy.png")
+        self.image = scale_image(image, 1/10)
         self.rect = self.image.get_rect()
         self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
 
     def move(self):
         self.rect.move_ip(0, 5)
-        if self.rect.top > SCREEN_HEIGHT:
+        global score
+        if self.rect.top > SCREEN_HEIGHT//1.5:
+            score += 1
             self.rect.top = 0
             self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
 
+#  Coin class
+class Coin(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        image = pygame.image.load('coin.png')
+        self.image = scale_image(image, 1/20)
+        self.rect = self.image.get_rect()
+        self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
+    def move(self):
+        self.rect.move_ip(0, 5)
+        if self.rect.top > SCREEN_HEIGHT//1.5:
+            self.rect.top = 0
+            self.rect.center = (random.randint(40, SCREEN_WIDTH - 40), 0)
+
+
+
 # Create player and enemy sprites groups
 player = Player()
+coin = Coin()
+enemy = Enemy()
+
 enemies = pygame.sprite.Group()
+enemies.add(enemy)
+coins = pygame.sprite.Group()
+coins.add(coin)
+#enemies.add(E2)
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
+all_sprites.add(enemy)
+all_sprites.add(coin)
+
 
 # Game variables
 speed = 5
-score = 0
+coin_score = 0
 
+SPAWN_COIN = pygame.USEREVENT + 2
+pygame.time.set_timer(SPAWN_COIN, 5000)
+
+
+def spawn_coin():
+    new_coin = Coin()
+    coins.add(new_coin)
+    all_sprites.add(new_coin)
 # Game loop
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        elif event.type == SPAWN_COIN:
+            spawn_coin()
         elif event.type == INC_SPEED:
             speed += 0.5  # Increase speed
         elif event.type == SPAWN_ENEMY:
@@ -102,10 +151,18 @@ while True:
     DISPLAYSURF.blit(background, (0, 0))
     scores = font_small.render(str(score), True, BLACK)
     DISPLAYSURF.blit(scores, (10, 10))
+    coin_scorre = font_small.render(f'Coin score: {str(coin_score)}', True, BLACK)
+    DISPLAYSURF.blit(coin_scorre, (SCREEN_WIDTH//2.5, 10))
 
     for entity in all_sprites:
         DISPLAYSURF.blit(entity.image, entity.rect)
         entity.move()
+    
+
+    if pygame.sprite.spritecollide(player, coins, True):
+        pygame.mixer.Sound('catch.mp3').play()
+        coin_score += 5
+
 
     if pygame.sprite.spritecollideany(player, enemies):
         # Collision with enemy
@@ -113,7 +170,7 @@ while True:
         pygame.mixer.Sound('crash.wav').play()
         time.sleep(0.5)
         DISPLAYSURF.fill(RED)
-        DISPLAYSURF.blit(game_over, (30, 250))
+        DISPLAYSURF.blit(game_over, (SCREEN_WIDTH//6, SCREEN_HEIGHT//4))
         pygame.display.update()
         time.sleep(2)
         pygame.quit()
